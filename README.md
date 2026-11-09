@@ -48,7 +48,7 @@ Las variables `NEXT_PUBLIC_*` quedan visibles en el navegador. Usa solo un token
 1. Al cargar, la app pide tu ubicación. Si no se concede, aparece una alerta para ingresar una dirección o elegir un punto en el mapa.
 2. Define el **origen**: escribe una dirección en la barra superior (elige una sugerencia o presiona Enter), toca el mapa, arrastra el punto azul o usa el botón ◎.
 3. En el panel inferior ajusta los cuatro bloques:
-   - **Datos del vehículo:** marca, modelo, año y rendimiento (1 a 50 km/l; 10 por defecto).
+   - **Datos del vehículo:** marca y modelo (con búsqueda), año y rendimiento (1 a 50 km/l; 10 por defecto).
    - **Tipo de combustible:** 93, 95 (por defecto), 97 o diésel.
    - **Volumen de carga:** monto en pesos o litros (30 L por defecto), con botones rápidos.
    - **Radio de búsqueda:** de 1 a 20 km (5 por defecto). Se dibuja como un círculo azul en el mapa.
@@ -98,11 +98,13 @@ lib/
 ├── api.js                 # Llamadas al backend y a Mapbox
 ├── config.js              # Constantes: cobertura, valores por defecto, combustibles
 ├── format.js              # Formato de pesos, kilómetros y miles
-└── vehiculos.js           # Catálogo de vehículos (de ejemplo)
+└── vehiculos.js           # Catálogo de ~80 marcas (de ejemplo) y búsqueda
 ```
 
 ## Datos de ejemplo (no reales)
 
-`lib/vehiculos.js` es un catálogo de pocas marcas con rendimientos **aproximados** puestos a mano. No viene de ninguna fuente oficial. También están escritos en el código la lista de combustibles y el límite de Ñuñoa.
+`lib/vehiculos.js` es un catálogo de unas 80 marcas (Toyota, Chevrolet, Hyundai, Kia, Suzuki, Nissan, BMW, Chery, BYD, etc.) con sus modelos más comunes, años 2010 a 2025. Los rendimientos son **aproximados** y puestos a mano. Las primeras marcas del MVP (Toyota, Chevrolet, Hyundai, Kia, Suzuki) conservan sus valores por año originales; en el resto, cada modelo usa un único valor para todos los años (bloque `ORIGINAL` para sobrescribir por año). No vienen de ninguna fuente oficial. Para agregar una marca o modelo, edita el objeto `BASE` con el formato `Marca: { Modelo: km/L }`.
+
+En el formulario, **Marca** y **Modelo** son campos de búsqueda: escribe para filtrar la lista (no distingue mayúsculas ni tildes) y elige una opción. Si el vehículo no está en el catálogo, ingresa el rendimiento a mano. También están escritos en el código la lista de combustibles y el límite de Ñuñoa.
 
 

@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { COMBUSTIBLES } from '../lib/config';
-import { VEHICULOS, rendimientoDe } from '../lib/vehiculos';
+import { VEHICULOS, rendimientoDe, buscarClave } from '../lib/vehiculos';
 import { formatMiles, parseMiles } from '../lib/format';
 import { buscarDirecciones, ubicacionDeSugerencia } from '../lib/api';
 
@@ -67,8 +67,10 @@ export default function ParamsPanel({ params, onCambio, onBuscar, buscando, orig
   const puedeBuscar = origenListo && validarRendimiento(params.rendimiento) && cantidadOk && !buscando;
 
   const marcas = Object.keys(VEHICULOS);
-  const modelos = params.marca ? Object.keys(VEHICULOS[params.marca]) : [];
-  const anios = params.marca && params.modelo ? Object.keys(VEHICULOS[params.marca][params.modelo]) : [];
+  const marcaValida = !!VEHICULOS[params.marca];
+  const modelos = marcaValida ? Object.keys(VEHICULOS[params.marca]) : [];
+  const modeloValido = marcaValida && !!VEHICULOS[params.marca][params.modelo];
+  const anios = modeloValido ? Object.keys(VEHICULOS[params.marca][params.modelo]).reverse() : [];
 
   function elegirVehiculo(cambios) {
     const nuevo = { ...params, ...cambios };
@@ -189,34 +191,46 @@ export default function ParamsPanel({ params, onCambio, onBuscar, buscando, orig
         onToggle={() => toggle('vehiculo')}
       >
         <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
-          <select
+          <input
             aria-label="Marca"
+            list="lista-marcas"
+            placeholder="Marca (escribe para buscar)"
+            autoComplete="off"
             className={campo}
             value={params.marca}
-            onChange={(e) => elegirVehiculo({ marca: e.target.value, modelo: '', anio: '' })}
-          >
-            <option value="">Marca</option>
+            onChange={(e) => {
+              const exacta = buscarClave(VEHICULOS, e.target.value);
+              elegirVehiculo({ marca: exacta ?? e.target.value, modelo: '', anio: '' });
+            }}
+          />
+          <datalist id="lista-marcas">
             {marcas.map((m) => (
-              <option key={m}>{m}</option>
+              <option key={m} value={m} />
             ))}
-          </select>
-          <select
+          </datalist>
+          <input
             aria-label="Modelo"
+            list="lista-modelos"
+            placeholder="Modelo (escribe para buscar)"
+            autoComplete="off"
             className={campo}
             value={params.modelo}
-            disabled={!params.marca}
-            onChange={(e) => elegirVehiculo({ modelo: e.target.value, anio: '' })}
-          >
-            <option value="">Modelo</option>
+            disabled={!marcaValida}
+            onChange={(e) => {
+              const exacto = buscarClave(VEHICULOS[params.marca], e.target.value);
+              elegirVehiculo({ modelo: exacto ?? e.target.value, anio: '' });
+            }}
+          />
+          <datalist id="lista-modelos">
             {modelos.map((m) => (
-              <option key={m}>{m}</option>
+              <option key={m} value={m} />
             ))}
-          </select>
+          </datalist>
           <select
             aria-label="Año"
             className={campo}
             value={params.anio}
-            disabled={!params.modelo}
+            disabled={!modeloValido}
             onChange={(e) => elegirVehiculo({ anio: e.target.value })}
           >
             <option value="">Año</option>
