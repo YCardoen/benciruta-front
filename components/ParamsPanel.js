@@ -5,6 +5,8 @@ import { COMBUSTIBLES } from '../lib/config';
 import { VEHICULOS, rendimientoDe, buscarClave } from '../lib/vehiculos';
 import { formatMiles, parseMiles } from '../lib/format';
 import { buscarDirecciones, ubicacionDeSugerencia } from '../lib/api';
+import Descuentos from './Descuentos';
+import Lugares from './Lugares';
 
 export const MIN_DINERO = 1000;
 export const MIN_LITROS = 1;
@@ -47,6 +49,7 @@ const campo =
 export default function ParamsPanel({ params, onCambio, onBuscar, buscando, origenListo }) {
   const [abiertos, setAbiertos] = useState({
     destino: false,
+    descuentos: false,
     vehiculo: true,
     combustible: true,
     volumen: true,
@@ -79,6 +82,11 @@ export default function ParamsPanel({ params, onCambio, onBuscar, buscando, orig
     onCambio({ ...nuevo, rendimiento: r ? String(r) : params.rendimiento });
   }
 
+  // El destino guardado se restaura después de montar el panel: se refleja en el campo de texto
+  useEffect(() => {
+    setTextoDestino(params.destinoTexto || '');
+  }, [params.destinoTexto]);
+
   // Búsqueda de sugerencias para destino
   useEffect(() => {
     if (!abiertoDestino || textoDestino.trim().length < 3) {
@@ -105,19 +113,34 @@ export default function ParamsPanel({ params, onCambio, onBuscar, buscando, orig
     setSugerenciasDestino([]);
     try {
       const { lat, lng } = await ubicacionDeSugerencia(s.id);
-      set({ destinoLat: lat, destinoLng: lng, destinoTexto: s.texto });
+      set({ destinoLat: lat, destinoLng: lng, destinoTexto: s.texto, destinoActivo: true });
     } catch {
       alert('No se pudo obtener la ubicación exacta del destino seleccionado.');
     }
   }
 
+  function usarLugar(l) {
+    setTextoDestino(l.texto);
+    setAbiertoDestino(false);
+    setSugerenciasDestino([]);
+    set({ destinoLat: l.lat, destinoLng: l.lng, destinoTexto: l.texto, destinoActivo: true });
+  }
+
   function borrarDestino() {
     setTextoDestino('');
     setSugerenciasDestino([]);
-    set({ destinoLat: null, destinoLng: null, destinoTexto: '' });
+    set({ destinoLat: null, destinoLng: null, destinoTexto: '', destinoActivo: true });
   }
 
-  const resumenDestino = params.destinoTexto ? 'Definido ✓' : 'Ida y vuelta (sin destino)';
+  const destinoActivo = params.destinoActivo !== false;
+  const resumenDestino = !params.destinoTexto
+    ? 'Ida y vuelta (sin destino)'
+    : destinoActivo
+      ? 'Definido ✓'
+      : 'Guardado, sin usar';
+  const listaDescuentos = Array.isArray(params.descuentos) ? params.descuentos : [];
+  const activos = listaDescuentos.filter((d) => d.activo).length;
+  const resumenDescuentos = listaDescuentos.length ? `${activos} de ${listaDescuentos.length} activos` : 'Ninguno';
   const resumenVehiculo = `${String(params.rendimiento).replace('.', ',')} km/l`;
   const resumenComb = COMBUSTIBLES.find((c) => c.id === params.combustible)?.label;
   const resumenVol = params.cantidad
@@ -178,9 +201,40 @@ export default function ParamsPanel({ params, onCambio, onBuscar, buscando, orig
             </ul>
           )}
         </div>
+        <Lugares
+          lugares={Array.isArray(params.lugares) ? params.lugares : []}
+          destino={params.destinoLat ? { lat: params.destinoLat, lng: params.destinoLng, texto: params.destinoTexto } : null}
+          onCambio={(lugares) => set({ lugares })}
+          onUsar={usarLugar}
+        />
         {params.destinoLat && (
-          <p className="text-xs font-semibold text-green-700">✓ Destino fijado: solo se computará el desvío extra</p>
+          <label className="flex items-center gap-3 rounded-xl bg-white p-3 ring-1 ring-slate-200">
+            <input
+              type="checkbox"
+              checked={destinoActivo}
+              onChange={() => set({ destinoActivo: !destinoActivo })}
+              className="h-5 w-5 shrink-0 accent-green-600"
+            />
+            <span className="text-sm">
+              <strong>Usar este destino</strong>
+              <span className="block text-xs text-slate-500">
+                {destinoActivo
+                  ? 'Solo se computará el desvío extra'
+                  : 'Desactivado: el traslado se calcula como ida y vuelta'}
+              </span>
+            </span>
+          </label>
         )}
+      </Bloque>
+
+      {/* Descuentos del usuario */}
+      <Bloque
+        titulo="Mis descuentos"
+        resumen={resumenDescuentos}
+        abierto={abiertos.descuentos}
+        onToggle={() => toggle('descuentos')}
+      >
+        <Descuentos descuentos={listaDescuentos} onCambio={(descuentos) => set({ descuentos })} />
       </Bloque>
 
       {/* 1. Datos del vehículo */}

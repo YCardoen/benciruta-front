@@ -11,6 +11,12 @@ function Dato({ etiqueta, valor, destacado }) {
   );
 }
 
+function precioTexto(e) {
+  return e.precioEfectivo !== undefined && e.precioEfectivo < e.precioLitro
+    ? `${formatCLP(e.precioEfectivo)}/L`
+    : `${formatCLP(e.precioLitro)}/L`;
+}
+
 function TarjetaRecomendada({ e, litros, combustibleLabel, tieneDestino, activa, errorRuta, cargandoRuta, onVerRuta }) {
   return (
     <article className="rounded-3xl border-2 border-green-500 bg-green-50 p-4 shadow-md">
@@ -23,7 +29,11 @@ function TarjetaRecomendada({ e, litros, combustibleLabel, tieneDestino, activa,
 
       <dl className="mt-3 grid grid-cols-2 gap-3">
         <Dato etiqueta="Distancia desde origen" valor={formatKm(e.distanciaKm)} />
-        <Dato etiqueta={`Precio ${combustibleLabel}`} valor={`${formatCLP(e.precioLitro)}/L`} />
+        <Dato
+          etiqueta={e.descuentoTotal > 0 ? `Precio efectivo ${combustibleLabel}` : `Precio ${combustibleLabel}`}
+          valor={precioTexto(e)}
+        />
+        {e.descuentoTotal > 0 && <Dato etiqueta="Precio de lista" valor={`${formatCLP(e.precioLitro)}/L`} />}
         <Dato
           etiqueta={tieneDestino ? 'Costo del desvío extra' : 'Costo de traslado (ida y vuelta)'}
           valor={formatCLP(e.costoViaje)}
@@ -72,7 +82,8 @@ function TarjetaAlterna({ e, indice, tieneDestino, seleccionada, onSeleccionar, 
           <p className="shrink-0 font-bold">{formatCLP(e.costoTotal)}</p>
         </div>
         <p className="mt-1 text-sm text-slate-600">
-          {formatKm(e.distanciaKm)} · {formatCLP(e.precioLitro)}/L · {tieneDestino ? 'desvío ' : 'traslado '}
+          {formatKm(e.distanciaKm)} · {precioTexto(e)}
+          {e.descuentoTotal > 0 ? ' c/dto.' : ''} · {tieneDestino ? 'desvío ' : 'traslado '}
           {formatCLP(e.costoViaje)}
         </p>
       </button>
@@ -98,7 +109,7 @@ export default function Resultados({
   onVerRuta,
   onModificar,
 }) {
-  const { mejorOpcion, ranking, litros, combustibleLabel, radioKm, litrosDesdeDinero, tieneDestino } = resultado;
+  const { mejorOpcion, ranking, litros, combustibleLabel, radioKm, litrosDesdeDinero, tieneDestino, tieneDescuentos } = resultado;
   const otras = ranking.filter((e) => e.id !== mejorOpcion.id);
 
   return (
@@ -117,6 +128,12 @@ export default function Resultados({
       {tieneDestino && (
         <p className="rounded-xl bg-blue-50 px-3 py-2 text-xs font-medium text-blue-700">
           📍 Costo de traslado calculado exclusivamente con el <strong>desvío extra</strong> hacia tu destino.
+        </p>
+      )}
+
+      {tieneDescuentos && (
+        <p className="rounded-xl bg-green-50 px-3 py-2 text-xs font-medium text-green-700">
+          🏷️ Los costos consideran tus descuentos activos (precio efectivo por litro).
         </p>
       )}
 

@@ -22,6 +22,9 @@ const PARAMS_INICIALES = {
   destinoLat: null,
   destinoLng: null,
   destinoTexto: '',
+  destinoActivo: true,
+  lugares: [],
+  descuentos: [],
   marca: '',
   modelo: '',
   anio: '',
@@ -43,6 +46,8 @@ export default function Home() {
 
   const [params, setParams] = useState(PARAMS_INICIALES);
   const [cargado, setCargado] = useState(false);
+  // El destino puede quedar guardado pero desactivado
+  const usaDestino = params.destinoActivo !== false;
 
   const [estadoSheet, setEstadoSheet] = useState('medio');
   const [alturaSheet, setAlturaSheet] = useState(0);
@@ -235,11 +240,13 @@ export default function Home() {
           }
         }
 
+        const descuentosActivos = (Array.isArray(params.descuentos) ? params.descuentos : []).filter((d) => d.activo);
         const calculo = await calcularMejorOpcion({
           lat: origen.lat,
           lng: origen.lng,
-          destinoLat: params.destinoLat || null,
-          destinoLng: params.destinoLng || null,
+          destinoLat: usaDestino ? params.destinoLat || null : null,
+          destinoLng: usaDestino ? params.destinoLng || null : null,
+          descuentos: descuentosActivos,
           litrosACargar: litros,
           rendimientoKmL: Number(params.rendimiento),
           radioMaxKm: radioKm,
@@ -279,7 +286,8 @@ export default function Home() {
           litrosDesdeDinero,
           combustibleLabel: comb.label,
           radioKm,
-          tieneDestino: Boolean(params.destinoLat),
+          tieneDestino: usaDestino && Boolean(params.destinoLat),
+          tieneDescuentos: descuentosActivos.length > 0,
         });
         setVista('resultados');
         setEstadoSheet('medio');
@@ -308,7 +316,7 @@ export default function Home() {
       setSeleccionadaId(estacion.id);
       try {
         const destinoObj =
-          params.destinoLat && params.destinoLng
+          usaDestino && params.destinoLat && params.destinoLng
             ? { lat: params.destinoLat, lng: params.destinoLng }
             : null;
 
@@ -327,11 +335,11 @@ export default function Home() {
         setCargandoRuta(null);
       }
     },
-    [origen, params.destinoLat, params.destinoLng]
+    [origen, usaDestino, params.destinoLat, params.destinoLng]
   );
 
   const destinoActual =
-    params.destinoLat && params.destinoLng
+    usaDestino && params.destinoLat && params.destinoLng
       ? { lat: params.destinoLat, lng: params.destinoLng }
       : null;
 
